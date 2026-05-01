@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Flappy Multiplayer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="menu">
+  <h2>Karakter Seç</h2>
+  <button onclick="selectChar('ceylan')">Ceylan</button>
+  <button onclick="selectChar('hakki')">Hakkı</button>
+  <br><br>
+  <button onclick="ready()">Hazırım</button>
+</div>
+
+<div id="game" class="hidden">
+  <canvas id="canvasTop"></canvas>
+  <canvas id="canvasBottom"></canvas>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="game.js"></script>
+
+</body>
+</html>
