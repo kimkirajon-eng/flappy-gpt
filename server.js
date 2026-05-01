@@ -162,3 +162,4 @@ gameLoop();
 http.listen(PORT, () => {
   console.log("Server çalışıyor:", PORT);
 });
+app.use(express.static("public"));
