@@ -1,17 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Flappy Multiplayer</title>
+  <title>Flappy Duo</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="menu">
-  <h2>Karakter Seç</h2>
-  <button onclick="selectChar('ceylan')">Ceylan</button>
-  <button onclick="selectChar('hakki')">Hakkı</button>
-  <br><br>
-  <button onclick="ready()">Hazırım</button>
+<div id="menu" class="menu">
+  <h1>Flappy Duo</h1>
+
+  <div class="characters">
+    <div class="card" onclick="selectChar('ceylan')" id="ceylanCard">
+      🦌
+      <p>Ceylan</p>
+    </div>
+
+    <div class="card" onclick="selectChar('hakki')" id="hakkiCard">
+      😎
+      <p>Hakkı</p>
+    </div>
+  </div>
+
+  <button onclick="ready()" class="startBtn">Hazırım</button>
+
+  <p id="status">Karakter seç</p>
 </div>
 
 <div id="game" class="hidden">
