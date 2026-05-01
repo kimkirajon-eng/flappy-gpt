@@ -13,14 +13,24 @@ const canvasBottom = document.getElementById("canvasBottom");
 const ctxTop = canvasTop.getContext("2d");
 const ctxBottom = canvasBottom.getContext("2d");
 
-canvasTop.width = canvasBottom.width = 400;
-canvasTop.height = canvasBottom.height = 300;
+// -------- RESIZE (MOBİL) --------
+function resizeCanvas() {
+  canvasTop.width = window.innerWidth;
+  canvasBottom.width = window.innerWidth;
 
+  canvasTop.height = window.innerHeight / 2;
+  canvasBottom.height = window.innerHeight / 2;
+}
+
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+// -------- SOCKET --------
 socket.on("playerId", (id) => {
   playerId = id;
 });
 
-// ---------------- KARAKTER ----------------
+// -------- CHARACTER --------
 function selectChar(char) {
   selectedChar = char;
   socket.emit("selectCharacter", char);
@@ -33,7 +43,7 @@ function selectChar(char) {
   statusText.innerText = "Hazır ol ve bekle...";
 }
 
-// ---------------- READY ----------------
+// -------- READY --------
 function ready() {
   if (!selectedChar) {
     alert("Karakter seç!");
@@ -44,11 +54,10 @@ function ready() {
   statusText.innerText = "Rakip bekleniyor...";
 }
 
-// ---------------- GAME STATE ----------------
+// -------- GAME STATE --------
 socket.on("gameState", (state) => {
   gameState = state;
 
-  // oyun başladıysa ekrana geç
   if (!gameStarted && Object.keys(state.players).length === 2) {
     gameStarted = true;
 
@@ -57,17 +66,26 @@ socket.on("gameState", (state) => {
   }
 });
 
-// ---------------- INPUT ----------------
+// -------- GAME OVER --------
+socket.on("gameOver", () => {
+  alert("Çarptın! Oyun bitti.");
+  location.reload();
+});
+
+// -------- INPUT --------
 document.addEventListener("click", () => {
   if (gameStarted) {
     socket.emit("jump");
   }
 });
 
-// ---------------- DRAW ----------------
+// -------- DRAW --------
 function drawPlayer(ctx, player) {
   ctx.fillStyle = player.character === "ceylan" ? "brown" : "green";
-  ctx.fillRect(50, player.y, 20, 20);
+
+  ctx.beginPath();
+  ctx.arc(60, player.y + 10, 10, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawPipes(ctx, pipes) {
@@ -79,7 +97,7 @@ function drawPipes(ctx, pipes) {
   });
 }
 
-// ---------------- RENDER ----------------
+// -------- RENDER --------
 function render() {
   requestAnimationFrame(render);
 
@@ -92,8 +110,8 @@ function render() {
   let otherId = ids.find(id => id !== playerId);
   let other = gameState.players[otherId];
 
-  ctxTop.clearRect(0, 0, 400, 300);
-  ctxBottom.clearRect(0, 0, 400, 300);
+  ctxTop.clearRect(0, 0, canvasTop.width, canvasTop.height);
+  ctxBottom.clearRect(0, 0, canvasBottom.width, canvasBottom.height);
 
   drawPipes(ctxTop, gameState.pipes);
   drawPipes(ctxBottom, gameState.pipes);
