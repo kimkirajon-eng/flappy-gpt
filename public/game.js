@@ -3,6 +3,9 @@ const socket = io();
 let playerId = null;
 let gameState = null;
 let selectedChar = null;
+let gameStarted = false;
+
+const statusText = document.getElementById("status");
 
 const canvasTop = document.getElementById("canvasTop");
 const canvasBottom = document.getElementById("canvasBottom");
@@ -17,11 +20,20 @@ socket.on("playerId", (id) => {
   playerId = id;
 });
 
+// ---------------- KARAKTER ----------------
 function selectChar(char) {
   selectedChar = char;
   socket.emit("selectCharacter", char);
+
+  document.getElementById("ceylanCard").classList.remove("selected");
+  document.getElementById("hakkiCard").classList.remove("selected");
+
+  document.getElementById(char + "Card").classList.add("selected");
+
+  statusText.innerText = "Hazır ol ve bekle...";
 }
 
+// ---------------- READY ----------------
 function ready() {
   if (!selectedChar) {
     alert("Karakter seç!");
@@ -29,18 +41,30 @@ function ready() {
   }
 
   socket.emit("ready");
-  document.getElementById("menu").classList.add("hidden");
-  document.getElementById("game").classList.remove("hidden");
+  statusText.innerText = "Rakip bekleniyor...";
 }
 
+// ---------------- GAME STATE ----------------
 socket.on("gameState", (state) => {
   gameState = state;
+
+  // oyun başladıysa ekrana geç
+  if (!gameStarted && Object.keys(state.players).length === 2) {
+    gameStarted = true;
+
+    document.getElementById("menu").classList.add("hidden");
+    document.getElementById("game").classList.remove("hidden");
+  }
 });
 
+// ---------------- INPUT ----------------
 document.addEventListener("click", () => {
-  socket.emit("jump");
+  if (gameStarted) {
+    socket.emit("jump");
+  }
 });
 
+// ---------------- DRAW ----------------
 function drawPlayer(ctx, player) {
   ctx.fillStyle = player.character === "ceylan" ? "brown" : "green";
   ctx.fillRect(50, player.y, 20, 20);
@@ -55,26 +79,27 @@ function drawPipes(ctx, pipes) {
   });
 }
 
+// ---------------- RENDER ----------------
 function render() {
+  requestAnimationFrame(render);
+
   if (!gameState) return;
+
+  let ids = Object.keys(gameState.players);
+  if (ids.length < 2) return;
+
+  let me = gameState.players[playerId];
+  let otherId = ids.find(id => id !== playerId);
+  let other = gameState.players[otherId];
 
   ctxTop.clearRect(0, 0, 400, 300);
   ctxBottom.clearRect(0, 0, 400, 300);
 
-  let ids = Object.keys(gameState.players);
-
-  if (ids.length < 2) return;
-
-  let p1 = gameState.players[ids[0]];
-  let p2 = gameState.players[ids[1]];
-
   drawPipes(ctxTop, gameState.pipes);
   drawPipes(ctxBottom, gameState.pipes);
 
-  drawPlayer(ctxTop, p1);
-  drawPlayer(ctxBottom, p2);
-
-  requestAnimationFrame(render);
+  drawPlayer(ctxTop, other);
+  drawPlayer(ctxBottom, me);
 }
 
 render();
