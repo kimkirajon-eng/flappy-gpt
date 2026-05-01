@@ -1,11 +1,7 @@
 const express = require("express");
 const app = express();
 const http = require("http").createServer(app);
-const io = require("socket.io")(http, {
-  cors: {
-    origin: "*"
-  }
-});
+const io = require("socket.io")(http);
 
 app.use(express.static("public"));
 
@@ -19,7 +15,7 @@ let gameState = {
   pipes: []
 };
 
-// ------------------ OYUN RESET ------------------
+// ---------------- RESET ----------------
 function resetGame() {
   gameState.pipes = [];
 
@@ -38,18 +34,30 @@ function resetGame() {
   }
 }
 
-// ------------------ CONNECTION ------------------
-io.on("connection", (socket) => {
-  console.log("Yeni kullanıcı:", socket.id);
+// ---------------- COLLISION ----------------
+function checkCollision(player, pipes) {
+  for (let pipe of pipes) {
 
-  // max 2 kişi
+    let withinX = 70 > pipe.x && 50 < pipe.x + 40;
+
+    let hitTop = player.y < pipe.gapY;
+    let hitBottom = player.y + 20 > pipe.gapY + 120;
+
+    if (withinX && (hitTop || hitBottom)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ---------------- CONNECTION ----------------
+io.on("connection", (socket) => {
+
   if (Object.keys(players).length >= 2) {
-    socket.emit("full");
     socket.disconnect();
     return;
   }
 
-  // oyuncu oluştur
   players[socket.id] = {
     y: 200,
     velocity: 0,
@@ -59,87 +67,74 @@ io.on("connection", (socket) => {
 
   socket.emit("playerId", socket.id);
 
-  // ------------------ KARAKTER ------------------
   socket.on("selectCharacter", (char) => {
-    if (players[socket.id]) {
-      players[socket.id].character = char;
-    }
+    players[socket.id].character = char;
   });
 
-  // ------------------ READY ------------------
   socket.on("ready", () => {
-    if (!players[socket.id]) return;
-
     players[socket.id].ready = true;
 
-    const playerList = Object.values(players);
-
     const allReady =
-      playerList.length === 2 &&
-      playerList.every(p => p.ready && p.character);
+      Object.values(players).length === 2 &&
+      Object.values(players).every(p => p.ready && p.character);
 
     if (allReady) {
-      console.log("Oyun başlıyor");
       gameStarted = true;
       resetGame();
     }
   });
 
-  // ------------------ JUMP ------------------
   socket.on("jump", () => {
-    if (!gameStarted) return;
-
-    if (players[socket.id]) {
-      players[socket.id].velocity = -8;
+    if (gameStarted) {
+      players[socket.id].velocity = -10;
     }
   });
 
-  // ------------------ DISCONNECT ------------------
   socket.on("disconnect", () => {
-    console.log("Çıktı:", socket.id);
-
     delete players[socket.id];
-
-    // oyun reset
     gameStarted = false;
 
-    // kalan oyuncuların ready'sini sıfırla
     for (let id in players) {
       players[id].ready = false;
     }
   });
 });
 
-// ------------------ GAME LOOP ------------------
+// ---------------- GAME LOOP ----------------
 function gameLoop() {
   if (gameStarted) {
 
-    // physics
     for (let id in players) {
       let p = players[id];
 
-      p.velocity += 0.5; // gravity
+      p.velocity += 0.6;
+      p.velocity *= 0.98;
       p.y += p.velocity;
 
-      // yere çarpmasın diye limit
+      if (p.y < 0) p.y = 0;
       if (p.y > 280) {
         p.y = 280;
         p.velocity = 0;
       }
 
-      if (p.y < 0) {
-        p.y = 0;
-        p.velocity = 0;
+      if (checkCollision(p, gameState.pipes)) {
+
+        gameStarted = false;
+
+        for (let pid in players) {
+          players[pid].ready = false;
+        }
+
+        io.emit("gameOver");
+        return;
       }
     }
 
-    // pipe hareketi
     gameState.pipes.forEach(pipe => {
       pipe.x -= 2;
     });
 
-    // pipe recycle
-    if (gameState.pipes.length && gameState.pipes[0].x < -60) {
+    if (gameState.pipes[0].x < -60) {
       gameState.pipes.shift();
       gameState.pipes.push({
         x: 400,
@@ -147,7 +142,6 @@ function gameLoop() {
       });
     }
 
-    // state güncelle
     gameState.players = players;
 
     io.emit("gameState", gameState);
@@ -158,8 +152,6 @@ function gameLoop() {
 
 gameLoop();
 
-// ------------------ SERVER START ------------------
 http.listen(PORT, () => {
-  console.log("Server çalışıyor:", PORT);
+  console.log("Server running:", PORT);
 });
-app.use(express.static("public"));
