@@ -1,7 +1,7 @@
 {
   "name": "flappy-multiplayer",
   "version": "1.0.0",
-  "description": "2 player flappy bird",
+  "description": "Multiplayer Flappy Bird",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
